@@ -1,9 +1,22 @@
 
+import { useState } from "react"
 import Header from "@/components/Header"
-import Filters from "@/components/Filters"
+import Filters, { FilterState } from "@/components/Filters"
 import JobList from "@/components/JobList"
 
 const Index = () => {
+  const [activeFilters, setActiveFilters] = useState<FilterState>({
+    jobTypes: [],
+    locations: [],
+    salaryRange: [0, 300000],
+    industries: [],
+    experience: "mid"
+  });
+
+  const handleApplyFilters = (filters: FilterState) => {
+    setActiveFilters(filters);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
@@ -12,7 +25,7 @@ const Index = () => {
         <div className="flex flex-col md:flex-row md:space-x-8">
           {/* Filters Sidebar */}
           <div className="w-full md:w-1/4 mb-6 md:mb-0">
-            <Filters />
+            <Filters onApplyFilters={handleApplyFilters} />
           </div>
           
           {/* Main Content */}

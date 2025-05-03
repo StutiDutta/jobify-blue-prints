@@ -1,4 +1,5 @@
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Building, Clock } from "lucide-react"
@@ -25,8 +26,10 @@ const JobCard = ({
   description,
   featured = false,
 }: JobCardProps) => {
+  const [expanded, setExpanded] = useState(false)
+
   return (
-    <div className={`job-card p-5 ${featured ? 'border-l-4 border-l-jobify-blue' : ''}`}>
+    <div className={`job-card p-5 bg-white rounded-lg shadow-sm transition-all duration-200 ${featured ? 'border-l-4 border-l-jobify-blue' : ''}`}>
       <div className="flex items-start justify-between">
         <div>
           <h3 className="font-semibold text-lg text-gray-900 mb-1">{title}</h3>
@@ -54,13 +57,17 @@ const JobCard = ({
         </div>
       </div>
       
-      <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+      <p className={`text-sm text-gray-600 mb-4 ${expanded ? '' : 'line-clamp-2'}`}>
         {description}
       </p>
 
       <div className="flex justify-end">
-        <Button size="sm" className="bg-jobify-blue hover:bg-jobify-blue-dark text-white">
-          View More
+        <Button 
+          size="sm" 
+          className="bg-jobify-blue hover:bg-jobify-blue-dark text-white"
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? "Show Less" : "View More"}
         </Button>
       </div>
     </div>

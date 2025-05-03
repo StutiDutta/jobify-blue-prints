@@ -1,8 +1,9 @@
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import JobCard, { JobCardProps } from "./JobCard"
 import { Button } from "@/components/ui/button"
 import { ChevronDown } from "lucide-react"
+import { FilterState } from "./Filters"
 
 // Mock data for job listings
 const JOBS_DATA: JobCardProps[] = [
@@ -93,44 +94,141 @@ const SIMILAR_JOBS_DATA: JobCardProps[] = [
   },
 ]
 
-const JobList = () => {
-  const [showAllJobs, setShowAllJobs] = useState(false)
+// Helper function to extract salary range as numbers
+const extractSalaryRange = (salaryStr: string | undefined): [number, number] => {
+  if (!salaryStr) return [0, 0];
+  
+  // Extract numbers from string like "$120,000 - $150,000"
+  const matches = salaryStr.match(/\$?([\d,]+)/g);
+  if (!matches || matches.length < 2) return [0, 0];
+  
+  const min = parseInt(matches[0].replace(/\$|,/g, ''));
+  const max = parseInt(matches[1].replace(/\$|,/g, ''));
+  
+  return [min, max];
+}
 
-  const displayedJobs = showAllJobs ? JOBS_DATA : JOBS_DATA.slice(0, 3)
+// Helper function to extract city from location
+const extractCity = (location: string): string => {
+  if (location === "Remote") return "remote-any";
+  const city = location.split(',')[0].trim().toLowerCase().replace(' ', '-');
+  return city;
+}
+
+// Helper to map job type to filter id
+const mapTypeToFilterId = (type: string): string => {
+  if (type === "Full-time") return "full-time";
+  if (type === "Part-time") return "part-time";
+  if (type === "Remote") return "remote";
+  if (type === "Contract") return "contract";
+  return "internship";
+}
+
+const JobList = () => {
+  const [showAllJobs, setShowAllJobs] = useState(false);
+  const [filters, setFilters] = useState<FilterState>({
+    jobTypes: [],
+    locations: [],
+    salaryRange: [0, 300000],
+    industries: [],
+    experience: "mid"
+  });
+  const [filteredJobs, setFilteredJobs] = useState<JobCardProps[]>(JOBS_DATA);
+  const [filteredSimilarJobs, setFilteredSimilarJobs] = useState<JobCardProps[]>(SIMILAR_JOBS_DATA);
+
+  // Apply filters to jobs
+  useEffect(() => {
+    const applyFilters = (jobs: JobCardProps[]) => {
+      return jobs.filter(job => {
+        // Filter by job type if any selected
+        if (filters.jobTypes.length > 0) {
+          const jobTypeId = mapTypeToFilterId(job.type);
+          if (!filters.jobTypes.includes(jobTypeId)) {
+            return false;
+          }
+        }
+        
+        // Filter by location if any selected
+        if (filters.locations.length > 0) {
+          const jobCity = extractCity(job.location);
+          if (!filters.locations.includes(jobCity)) {
+            return false;
+          }
+        }
+        
+        // Filter by salary range
+        const [minSalary, maxSalary] = extractSalaryRange(job.salary);
+        const [filterMin, filterMax] = filters.salaryRange;
+        
+        // If the job's salary range overlaps with the filter range
+        if (maxSalary < filterMin || minSalary > filterMax) {
+          return false;
+        }
+        
+        // For industry and experience level, we would need more data
+        // In a real app we would filter these too
+        
+        return true;
+      });
+    };
+
+    setFilteredJobs(applyFilters(JOBS_DATA));
+    setFilteredSimilarJobs(applyFilters(SIMILAR_JOBS_DATA));
+  }, [filters]);
+
+  const handleApplyFilters = (newFilters: FilterState) => {
+    setFilters(newFilters);
+  };
+
+  const displayedJobs = showAllJobs ? filteredJobs : filteredJobs.slice(0, 3);
 
   return (
     <div className="space-y-8">
       <section>
         <h2 className="text-2xl font-bold mb-6">Featured Jobs</h2>
-        <div className="space-y-4 jobify-fade-in">
-          {displayedJobs.map((job) => (
-            <JobCard key={job.id} {...job} />
-          ))}
-        </div>
-        
-        {!showAllJobs && JOBS_DATA.length > 3 && (
-          <div className="mt-6 text-center">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowAllJobs(true)}
-              className="border-jobify-blue text-jobify-blue hover:bg-jobify-blue hover:text-white"
-            >
-              Show More Jobs <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
+        {filteredJobs.length === 0 ? (
+          <div className="p-8 text-center bg-white rounded-md shadow">
+            <p className="text-gray-600">No jobs match your current filters. Try adjusting your criteria.</p>
           </div>
+        ) : (
+          <>
+            <div className="space-y-4 jobify-fade-in">
+              {displayedJobs.map((job) => (
+                <JobCard key={job.id} {...job} />
+              ))}
+            </div>
+            
+            {!showAllJobs && filteredJobs.length > 3 && (
+              <div className="mt-6 text-center">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowAllJobs(true)}
+                  className="border-jobify-blue text-jobify-blue hover:bg-jobify-blue hover:text-white"
+                >
+                  Show More Jobs <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </section>
 
       <section>
         <h2 className="text-2xl font-bold mb-6">Similar Jobs</h2>
-        <div className="space-y-4 jobify-fade-in">
-          {SIMILAR_JOBS_DATA.map((job) => (
-            <JobCard key={job.id} {...job} />
-          ))}
-        </div>
+        {filteredSimilarJobs.length === 0 ? (
+          <div className="p-8 text-center bg-white rounded-md shadow">
+            <p className="text-gray-600">No similar jobs match your current filters.</p>
+          </div>
+        ) : (
+          <div className="space-y-4 jobify-fade-in">
+            {filteredSimilarJobs.map((job) => (
+              <JobCard key={job.id} {...job} />
+            ))}
+          </div>
+        )}
       </section>
     </div>
-  )
-}
+  );
+};
 
-export default JobList
+export default JobList;

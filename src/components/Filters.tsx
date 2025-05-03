@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
 import { Filter, X } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
 
 const JobTypes = [
   { id: "full-time", label: "Full Time" },
@@ -44,12 +45,97 @@ const Experience = [
   { id: "executive", label: "Executive" },
 ]
 
-const Filters = () => {
+export interface FilterState {
+  jobTypes: string[];
+  locations: string[];
+  salaryRange: number[];
+  industries: string[];
+  experience: string;
+}
+
+interface FiltersProps {
+  onApplyFilters: (filters: FilterState) => void;
+}
+
+const Filters = ({ onApplyFilters }: FiltersProps) => {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false)
   const [salaryRange, setSalaryRange] = useState([30000, 150000])
+  const { toast } = useToast();
+  
+  // State for filter selections
+  const [selectedJobTypes, setSelectedJobTypes] = useState<string[]>([])
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([])
+  const [selectedIndustries, setSelectedIndustries] = useState<string[]>([])
+  const [selectedExperience, setSelectedExperience] = useState("mid")
 
   const formatSalary = (value: number) => {
     return `$${Math.round(value / 1000)}k`
+  }
+
+  const toggleJobType = (id: string) => {
+    setSelectedJobTypes(prev => 
+      prev.includes(id) 
+        ? prev.filter(item => item !== id) 
+        : [...prev, id]
+    )
+  }
+
+  const toggleLocation = (id: string) => {
+    setSelectedLocations(prev => 
+      prev.includes(id) 
+        ? prev.filter(item => item !== id) 
+        : [...prev, id]
+    )
+  }
+
+  const toggleIndustry = (id: string) => {
+    setSelectedIndustries(prev => 
+      prev.includes(id) 
+        ? prev.filter(item => item !== id) 
+        : [...prev, id]
+    )
+  }
+
+  const handleApplyFilters = () => {
+    const filters: FilterState = {
+      jobTypes: selectedJobTypes,
+      locations: selectedLocations,
+      salaryRange,
+      industries: selectedIndustries,
+      experience: selectedExperience
+    }
+    
+    onApplyFilters(filters)
+    
+    toast({
+      title: "Filters Applied",
+      description: "Job listings have been updated based on your filters.",
+    })
+    
+    if (isMobileFilterOpen) {
+      setIsMobileFilterOpen(false)
+    }
+  }
+
+  const handleResetFilters = () => {
+    setSelectedJobTypes([])
+    setSelectedLocations([])
+    setSalaryRange([30000, 150000])
+    setSelectedIndustries([])
+    setSelectedExperience("mid")
+    
+    onApplyFilters({
+      jobTypes: [],
+      locations: [],
+      salaryRange: [30000, 150000],
+      industries: [],
+      experience: "mid"
+    })
+    
+    toast({
+      title: "Filters Reset",
+      description: "All filters have been cleared.",
+    })
   }
 
   return (
@@ -91,7 +177,11 @@ const Filters = () => {
                 <div className="space-y-2">
                   {JobTypes.map(type => (
                     <div key={type.id} className="flex items-center space-x-2">
-                      <Checkbox id={type.id} />
+                      <Checkbox 
+                        id={type.id} 
+                        checked={selectedJobTypes.includes(type.id)}
+                        onCheckedChange={() => toggleJobType(type.id)}
+                      />
                       <Label htmlFor={type.id}>{type.label}</Label>
                     </div>
                   ))}
@@ -105,7 +195,11 @@ const Filters = () => {
                 <div className="space-y-2">
                   {Locations.map(location => (
                     <div key={location.id} className="flex items-center space-x-2">
-                      <Checkbox id={location.id} />
+                      <Checkbox 
+                        id={location.id} 
+                        checked={selectedLocations.includes(location.id)}
+                        onCheckedChange={() => toggleLocation(location.id)}
+                      />
                       <Label htmlFor={location.id}>{location.label}</Label>
                     </div>
                   ))}
@@ -118,7 +212,7 @@ const Filters = () => {
               <AccordionContent>
                 <div className="space-y-4">
                   <Slider
-                    defaultValue={salaryRange}
+                    value={salaryRange}
                     max={300000}
                     min={0}
                     step={5000}
@@ -138,7 +232,11 @@ const Filters = () => {
                 <div className="space-y-2">
                   {Industries.map(industry => (
                     <div key={industry.id} className="flex items-center space-x-2">
-                      <Checkbox id={industry.id} />
+                      <Checkbox 
+                        id={industry.id} 
+                        checked={selectedIndustries.includes(industry.id)}
+                        onCheckedChange={() => toggleIndustry(industry.id)}
+                      />
                       <Label htmlFor={industry.id}>{industry.label}</Label>
                     </div>
                   ))}
@@ -149,7 +247,7 @@ const Filters = () => {
             <AccordionItem value="experience">
               <AccordionTrigger>Experience Level</AccordionTrigger>
               <AccordionContent>
-                <RadioGroup defaultValue="mid">
+                <RadioGroup value={selectedExperience} onValueChange={setSelectedExperience}>
                   {Experience.map((level) => (
                     <div key={level.id} className="flex items-center space-x-2">
                       <RadioGroupItem value={level.id} id={level.id} />
@@ -162,10 +260,17 @@ const Filters = () => {
           </Accordion>
 
           <div className="mt-8 space-y-2">
-            <Button className="w-full bg-jobify-blue hover:bg-jobify-blue-dark">
+            <Button 
+              className="w-full bg-jobify-blue hover:bg-jobify-blue-dark"
+              onClick={handleApplyFilters}
+            >
               Apply Filters
             </Button>
-            <Button variant="outline" className="w-full border-gray-300">
+            <Button 
+              variant="outline" 
+              className="w-full border-gray-300"
+              onClick={handleResetFilters}
+            >
               Reset
             </Button>
           </div>
